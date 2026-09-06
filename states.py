@@ -90,5 +90,117 @@ class StateMachine:
                         else:
                             return [False, False, "Not a recognized start of token"]
                 return [True, False, ""]
+            case States.POSS_COMMENT:
+                match(c):
+                    case '/':
+                        self.currState = States.LINE_COMMENT
+                    case '*':
+                        self.currState = States.BLOCK_COMMENT
+                    case _: # division
+                        self.currState = States.INITIAL
+                        return [True, True, "&"]
+                return [True, False, ""]
+
+            case States.LINE_COMMENT:
+                if c == '\n':
+                    self.currState = States.INITIAL
+                    return [True, False, "NEXT"] # Flag that a comment ended
+                return [True, False, ""]
+            
+            case States.BLOCK_COMMENT:
+                if c == '*':
+                    self.currState = States.POSS_END_BLOCK_COMMENT
+                return [True, False, ""]
+            
+            case States.POSS_END_BLOCK_COMMENT:
+                if c == '/':
+                    self.currState = States.INITIAL
+                    return [True, False, "NEXT"] # Flag that a comment ended
+                else:
+                    self.currState = States.BLOCK_COMMENT
+                return [True, False, ""]
+            
+            case States.POSS_EQUAL_EQUAL:
+                self.currState = States.INITIAL
+                if c == '=':
+                    return [True, True, ""]
+                else:
+                    return [True, True, "&"]    
+
+            case States.POSS_LESS_EQUAL:
+                self.currState = States.INITIAL
+                if c == '=':
+                    return [True, True, ""]
+                else:
+                    return [True, True, "&"]    
+
+            case States.POSS_GREATER_EQUAL:
+                self.currState = States.INITIAL
+                if c == '=':
+                    return [True, True, ""]
+                else:
+                    return [True, True, "&"]   
+
+            case States.POSS_NOT_EQUAL:
+                self.currState = States.INITIAL
+                if c == '=':
+                    return [True, True, ""]
+                else:
+                    return [True, True, "&"]    
+
+            case States.POSS_LOGICAL_AND:
+                self.currState = States.INITIAL
+                if c == '&':
+                    return [True, True, ""]
+                else:
+                    return [False, False, "Bitwise AND not allowed"]
+
+            case States.POSS_LOGICAL_OR:
+                self.currState = States.INITIAL
+                if c == '|':
+                    return [True, True, ""]
+                else:
+                    return [False, False, "Bitwise OR not allowed"]
+
+            case States.IDENTIFIER:
+                if self.isAlpha(c) or self.isNum(c):
+                    return [True, False, ""] 
+                elif c == ' ':
+                    self.currState = States.INITIAL
+                    return [True, True, " &&"]   
+                else:
+                    self.currState = States.INITIAL
+                    return [True, True, "&&&"]  
+
+            case States.INT_LITERAL:
+                if self.isNum(c):
+                    return [True, False, ""] 
+                elif c == ' ':
+                    self.currState = States.INITIAL
+                    return [True, True, " &|"]
+                else:
+                    self.currState = States.INITIAL
+                    return [True, True, "&&|"]  
+
+            case States.STRING_LITERAL:
+                if c == '\"':
+                    self.currState = States.INITIAL
+                    return [True, True, "  ["]  # Fixed to include closing quote
+                elif c == '\\':
+                    self.currState = States.STRING_SLASH
+                    return [True, False, ""]
+                elif c == '\n':
+                    return [False, False, "Unclosed string literal"] # newline in string is an error
+                else:
+                    return [True, False, ""]
+
+            case States.STRING_SLASH:
+                poss_next_slash = {'n', 't', '\"', '\\'}
+                if c in poss_next_slash:
+                    self.currState = States.STRING_LITERAL
+                    return [True, False, ""]
+                else:
+                    return [False, False, "Not accepted: \'\\" + c + "\'"]
+
 
         return [False, False, f"missing return in state {self.currState}"]
