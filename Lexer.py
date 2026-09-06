@@ -204,17 +204,16 @@ class Lexer:
                             initial_col = column
                             initial_idx = idx
                             next_token = False
-                else:   # I am a bit confused when trying to deal with errors, will wait for state machine to make tests and see results
+                else:
                     if c == '\n':
                         err_col = column 
-                    elif self.st_mac.currState == states.States.STRING_SLASH: 
+                    elif self.st_mac.currState == states.States.STRING_SLASH:   # only allows \n, \t, \\, \"
                         err_col = column - 1
-                    elif self.st_mac.currState in (states.States.POSS_LOGICAL_AND, states.States.POSS_LOGICAL_OR):
-                        err_col = initial_col
-                    elif initial_col == column or self.st_mac.currState == states.States.INITIAL:
+                    elif next_token:    # if this is true when the error occurs, there is a non-recognized character
                         err_col = column
-                    else:
+                    else:   # middle of a token errors, like '&' or '|'
                         err_col = initial_col
+                        
                     raise LexerError(info, line, err_col)
 
                 redo = len(info) > 0 and info[0] == '&'
